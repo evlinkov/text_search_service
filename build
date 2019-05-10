@@ -1,0 +1,2 @@
+GOPATH=`pwd`
+go build -race text_search_service/main
