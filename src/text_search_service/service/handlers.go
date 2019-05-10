@@ -13,3 +13,7 @@ func InitHttpService(configuration *Configuration) {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
+
+func Close() {
+
+}
