@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func InitHttpService(configuration *Configuration) {
+func InitService(configuration *Configuration) {
 	router := mux.NewRouter()
 	err := http.ListenAndServe(configuration.Address+":"+configuration.Port, router)
 	if err != nil {
@@ -15,5 +15,5 @@ func InitHttpService(configuration *Configuration) {
 }
 
 func Close() {
-
+	log.Println("close the service")
 }

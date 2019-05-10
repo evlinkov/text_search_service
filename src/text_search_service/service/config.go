@@ -18,7 +18,7 @@ func GetConfiguration() *Configuration {
 	viper.SetConfigName(configurationFileName)
 	viper.AddConfigPath("src/text_search_service/config")
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("error reading config file, %s", err)
+		log.Fatalf("error reading config file, %v", err)
 	}
 	viper.WatchConfig()
 	return unloadConfiguration()
