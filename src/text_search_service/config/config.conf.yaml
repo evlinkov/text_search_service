@@ -1,3 +1,4 @@
 server:
   address: localhost
   port: 8066
+filename: "data.csv"

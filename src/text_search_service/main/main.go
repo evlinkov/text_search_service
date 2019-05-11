@@ -15,7 +15,8 @@ func main() {
 	configuration := service.GetConfiguration()
 	interrupt = make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-	go service.InitService(configuration)
+	service := &service.Service{}
+	service.InitService(configuration)
 	select {
 	case <-interrupt:
 		service.Close()

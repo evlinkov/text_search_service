@@ -10,8 +10,9 @@ const (
 )
 
 type Configuration struct {
-	Address string
-	Port    string
+	Address  string
+	Port     string
+	Filename string
 }
 
 func GetConfiguration() *Configuration {
@@ -26,7 +27,8 @@ func GetConfiguration() *Configuration {
 
 func unloadConfiguration() *Configuration {
 	return &Configuration{
-		Address: viper.GetString("server.address"),
-		Port:    viper.GetString("server.port"),
+		Address:  viper.GetString("server.address"),
+		Port:     viper.GetString("server.port"),
+		Filename: viper.GetString("filename"),
 	}
 }
