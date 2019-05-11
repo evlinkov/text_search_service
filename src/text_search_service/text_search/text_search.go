@@ -65,6 +65,7 @@ func (textSearch *TextSearch) AddWord(text string) uuid.UUID {
 	word.Re = regexp.MustCompile(word.Text)
 	word.Index = textSearch.index
 	textSearch.index++
+	textSearch.setOfWords[text] = word.Uuid
 	textSearch.mutexSetOfWords.Unlock()
 	textSearch.addWord(word)
 	return word.Uuid
