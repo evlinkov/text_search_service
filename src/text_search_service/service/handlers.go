@@ -38,5 +38,6 @@ func Close() {
 
 func initConnectors(configuration *Configuration) *Connectors {
 	connectors := &Connectors{}
+	connectors.textSearch = text_search.InitTextSearch()
 	return connectors
 }
