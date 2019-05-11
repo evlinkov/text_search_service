@@ -16,3 +16,14 @@ func TestCorrectnessTextSearchAdd(t *testing.T) {
 	}
 	t.Logf("success")
 }
+
+func TestCorrectnessTextSearchGet(t *testing.T) {
+	textSearch := InitTextSearch(nil)
+	response := textSearch.AddWord("text1")
+
+	word, ok := textSearch.GetWordByUUID(response)
+	if !ok || word.Text != "text1" {
+		t.Fatalf("error get word")
+	}
+	t.Logf("success")
+}
