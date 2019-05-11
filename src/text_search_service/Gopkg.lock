@@ -37,6 +37,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:84a60c93a99c66c6b467d1446b89c56588b1feb3e1a218f41447bd9c10509374"
+  name = "github.com/ljfuyuan/suffixtree"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3db99f1977953e4e7f169d2f67efd5982266a520"
+
+[[projects]]
   digest = "1:5a0ef768465592efca0412f7e838cdc0826712f8447e70e6ccc52eb441e9ab13"
   name = "github.com/magiconair/properties"
   packages = ["."]
@@ -147,6 +155,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/gorilla/mux",
+    "github.com/ljfuyuan/suffixtree",
     "github.com/satori/go.uuid",
     "github.com/spf13/viper",
   ]
