@@ -11,6 +11,7 @@ type TextSearch struct {
 	tree  Tree
 	words *sync.Map
 	mutex *sync.RWMutex
+	index int
 }
 
 type Word struct {
@@ -28,8 +29,19 @@ func InitTextSearch(words []Word) *TextSearch {
 	for _, word := range words {
 		textSearch.words.Store(fmt.Sprintf("%v", word.Uuid), word)
 		textSearch.tree.Put(word.Text, word.Index)
+		if word.Index > textSearch.index {
+			textSearch.index = word.Index + 1
+		}
 	}
 	return textSearch
+}
+
+func (textSearch *TextSearch) GetWordByUUID(uuid uuid.UUID) (Word, bool) {
+	word, ok := textSearch.words.Load(fmt.Sprintf("%v", uuid))
+	if ok {
+		return word.(Word), ok
+	}
+	return Word{}, ok
 }
 
 func (textSearch *TextSearch) GetAllWords() []Word {

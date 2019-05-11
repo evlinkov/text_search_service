@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/satori/go.uuid"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
 	"text_search_service/text_search"
+	"text_search_service/util"
 )
 
 const (
@@ -25,12 +27,18 @@ type Service struct {
 	configuration *Configuration
 }
 
+type WordResponse struct {
+	Text       string    `json:"text"`
+	Uuid       uuid.UUID `json:"uuid"`
+	Popularity int64     `json:"popularity"`
+}
+
 func (service *Service) InitService(configuration *Configuration) {
 	router := mux.NewRouter()
 	service.configuration = configuration
 	service.initConnectors()
 
-	router.HandleFunc("/get/{uuid}", get())
+	router.HandleFunc("/get/{uuid}", get(service))
 
 	go func() {
 		err := http.ListenAndServe(service.configuration.Address+":"+service.configuration.Port, router)
@@ -40,10 +48,35 @@ func (service *Service) InitService(configuration *Configuration) {
 	}()
 }
 
-func get() http.HandlerFunc {
+func get(service *Service) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		uuid := path.Base(r.URL.Path)
-		log.Println(uuid)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		uuid, err := util.ParseStringToUUID(path.Base(r.URL.Path))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("bad request %v\n", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		word, ok := service.connectors.textSearch.GetWordByUUID(uuid)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(convert(word))
+		}
 	}
 	return http.HandlerFunc(fn)
 }
@@ -88,4 +121,12 @@ func (service *Service) printData() {
 		return
 	}
 	file.Write(data)
+}
+
+func convert(word text_search.Word) WordResponse {
+	wordResponse := WordResponse{}
+	wordResponse.Text = word.Text
+	wordResponse.Uuid = word.Uuid
+	wordResponse.Popularity = word.Popularity
+	return wordResponse
 }
