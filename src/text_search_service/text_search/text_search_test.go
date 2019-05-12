@@ -52,7 +52,7 @@ func TestCorrectnessTextSearchMethodSearch(t *testing.T) {
 	t.Logf("success")
 }
 
-func TestCorrectnessParallel(t *testing.T) {
+func TestCorrectnessParallelSaveAndGet(t *testing.T) {
 	type TestCase struct {
 		id   int
 		uuid uuid.UUID
@@ -88,5 +88,36 @@ func TestCorrectnessParallel(t *testing.T) {
 		t.Fatalf("error search words")
 	}
 
+	t.Logf("success")
+}
+
+func TestCorrectnessParallelSaveAndSearch(t *testing.T) {
+	textSearch := InitTextSearch(nil)
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			textSearch.AddWord(fmt.Sprintf("text_%d", i))
+		}(i)
+	}
+	wg.Wait()
+	for i := 0; i < 99; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			textSearch.Search("text")
+		} ()
+	}
+	wg.Wait()
+	words := textSearch.Search("text")
+	if len(words) != 10 {
+		t.Fatalf("error search words")
+	}
+	for _, word := range words {
+		if word.Popularity != 100 {
+			t.Fatalf("error score popularity")
+		}
+	}
 	t.Logf("success")
 }
