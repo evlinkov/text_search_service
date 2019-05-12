@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"github.com/ljfuyuan/suffixtree"
 	"github.com/satori/go.uuid"
+	"log"
 	"regexp"
 	"sync"
 	"text_search_service/util"
+)
+
+const (
+	numberOfWorkersForUpdate = 100
 )
 
 type TextSearch struct {
@@ -18,7 +23,8 @@ type TextSearch struct {
 	setOfWords      map[string]uuid.UUID
 	mutexSetOfWords *sync.Mutex
 
-	indexToUuid *sync.Map
+	indexToUuid *sync.Map // index -> uuid
+	updaters    []*sync.Mutex
 }
 
 type Word struct {
@@ -37,6 +43,10 @@ func InitTextSearch(words []Word) *TextSearch {
 	textSearch.setOfWords = make(map[string]uuid.UUID)
 	textSearch.mutexSetOfWords = &sync.Mutex{}
 	textSearch.indexToUuid = &sync.Map{}
+	textSearch.updaters = make([]*sync.Mutex, numberOfWorkersForUpdate)
+	for i := 0; i < numberOfWorkersForUpdate; i++ {
+		textSearch.updaters[i] = &sync.Mutex{}
+	}
 
 	for _, word := range words {
 		word.Re = regexp.MustCompile(word.Text)
@@ -80,6 +90,7 @@ func (textSearch *TextSearch) Search(text string) []Word {
 		word, ok := textSearch.indexToUuid.Load(index)
 		if ok {
 			words = append(words, word.(Word))
+			go textSearch.updateWord(word.(Word))
 		}
 	}
 	return words
@@ -110,4 +121,17 @@ func (textSearch *TextSearch) addWord(word Word) {
 	defer textSearch.mutex.Unlock()
 	textSearch.mutex.Lock()
 	textSearch.tree.Put(word.Text, word.Index)
+}
+
+func (textSearch *TextSearch) updateWord(word Word) {
+	worker := util.GetHash(word.Text) % 100
+	defer textSearch.updaters[worker].Unlock()
+	textSearch.updaters[worker].Lock()
+	object, exists := textSearch.words.Load(word.Uuid)
+	if !exists {
+		log.Printf("can not find word in sync map %+v\n", word)
+		return
+	}
+	word.Popularity = object.(Word).Popularity + 1
+	textSearch.words.Store(word.Uuid, word)
 }
