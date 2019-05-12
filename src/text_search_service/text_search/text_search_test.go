@@ -3,6 +3,7 @@ package text_search
 import (
 	"fmt"
 	"github.com/satori/go.uuid"
+	"math/rand"
 	"sync"
 	"testing"
 )
@@ -107,7 +108,7 @@ func TestCorrectnessParallelSaveAndSearch(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			textSearch.Search("text")
-		} ()
+		}()
 	}
 	wg.Wait()
 	words := textSearch.Search("text")
@@ -120,4 +121,47 @@ func TestCorrectnessParallelSaveAndSearch(t *testing.T) {
 		}
 	}
 	t.Logf("success")
+}
+
+func BenchmarkSave(b *testing.B) {
+	textSearch := InitTextSearch(nil)
+	for i := 0; i < 1000; i++ {
+		textSearch.AddWord(randomString(100))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		textSearch.AddWord(randomString(100))
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	textSearch := InitTextSearch(nil)
+	uuids := make([]uuid.UUID, 0)
+	for i := 0; i < 1000; i++ {
+		uuid := textSearch.AddWord(randomString(100))
+		uuids = append(uuids, uuid)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		textSearch.GetWordByUUID(uuids[rand.Intn(len(uuids))])
+	}
+}
+
+func BenchmarkSearch(b *testing.B) {
+	textSearch := InitTextSearch(nil)
+	for i := 0; i < 1000; i++ {
+		textSearch.AddWord(randomString(100))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		textSearch.Search(randomString(3))
+	}
+}
+
+func randomString(len int) string {
+	bytes := make([]byte, len)
+	for i := 0; i < len; i++ {
+		bytes[i] = byte(65 + rand.Intn(25))
+	}
+	return string(bytes)
 }
