@@ -87,10 +87,13 @@ func (textSearch *TextSearch) Search(text string) []Word {
 	textSearch.mutex.RUnlock()
 	words := make([]Word, 0)
 	for _, index := range indexes {
-		word, ok := textSearch.indexToUuid.Load(index)
+		uuid, ok := textSearch.indexToUuid.Load(index)
 		if ok {
-			words = append(words, word.(Word))
-			go textSearch.updateWord(word.(Word))
+			word, ok := textSearch.words.Load(fmt.Sprintf("%v", uuid))
+			if ok {
+				words = append(words, word.(Word))
+				textSearch.updateWord(word.(Word))
+			}
 		}
 	}
 	return words
@@ -127,11 +130,11 @@ func (textSearch *TextSearch) updateWord(word Word) {
 	worker := util.GetHash(word.Text) % 100
 	defer textSearch.updaters[worker].Unlock()
 	textSearch.updaters[worker].Lock()
-	object, exists := textSearch.words.Load(word.Uuid)
+	object, exists := textSearch.words.Load(fmt.Sprintf("%v", word.Uuid))
 	if !exists {
 		log.Printf("can not find word in sync map %+v\n", word)
 		return
 	}
 	word.Popularity = object.(Word).Popularity + 1
-	textSearch.words.Store(word.Uuid, word)
+	textSearch.words.Store(fmt.Sprintf("%v", word.Uuid), word)
 }
