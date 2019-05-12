@@ -5,7 +5,6 @@ import (
 	"github.com/ljfuyuan/suffixtree"
 	"github.com/satori/go.uuid"
 	"log"
-	"regexp"
 	"sync"
 	"text_search_service/util"
 )
@@ -28,11 +27,10 @@ type TextSearch struct {
 }
 
 type Word struct {
-	Text       string         `json:"text"`
-	Uuid       uuid.UUID      `json:"uuid"`
-	Popularity int64          `json:"popularity"`
-	Index      int            `json:"index"`
-	Re         *regexp.Regexp `json:"-"`
+	Text       string    `json:"text"`
+	Uuid       uuid.UUID `json:"uuid"`
+	Popularity int64     `json:"popularity"`
+	Index      int       `json:"index"`
 }
 
 func InitTextSearch(words []Word) *TextSearch {
@@ -49,7 +47,6 @@ func InitTextSearch(words []Word) *TextSearch {
 	}
 
 	for _, word := range words {
-		word.Re = regexp.MustCompile(word.Text)
 		textSearch.words.Store(fmt.Sprintf("%v", word.Uuid), word)
 		textSearch.tree.Put(word.Text, word.Index)
 		textSearch.indexToUuid.Store(word.Index, word.Uuid)
@@ -72,7 +69,6 @@ func (textSearch *TextSearch) AddWord(text string) uuid.UUID {
 	word.Uuid = util.GenerateUUID()
 	word.Text = text
 	word.Popularity = 1
-	word.Re = regexp.MustCompile(word.Text)
 	word.Index = textSearch.index
 	textSearch.index++
 	textSearch.setOfWords[text] = word.Uuid

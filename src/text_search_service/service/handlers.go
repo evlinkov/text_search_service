@@ -11,12 +11,14 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"text_search_service/text_search"
 	"text_search_service/util"
 )
 
 const (
-	MaxLimitSearchResponse = 10
+	MaxLimitSearchResponse         = 10
+	NumberOfSymbolsAroundSubstring = 2
 )
 
 type Connectors struct {
@@ -34,8 +36,14 @@ type WordResponse struct {
 	Popularity int64     `json:"popularity"`
 }
 
+type WordResponseSearch struct {
+	Preview    string    `json:"preview"`
+	Uuid       uuid.UUID `json:"uuid"`
+	Popularity int64     `json:"popularity"`
+}
+
 type SearchResponse struct {
-	Words []WordResponse `json:"results"`
+	Words []WordResponseSearch `json:"results"`
 }
 
 type Request struct {
@@ -133,7 +141,37 @@ func search(service *Service) http.HandlerFunc {
 			words = words[:MaxLimitSearchResponse]
 		}
 		response := SearchResponse{}
-		response.Words = convertAll(words)
+		response.Words = make([]WordResponseSearch, 0, len(words))
+		for _, word := range words {
+			wordSearchResponse := WordResponseSearch{}
+			wordSearchResponse.Popularity = word.Popularity
+			wordSearchResponse.Uuid = word.Uuid
+			index := strings.Index(word.Text, request.Query)
+			if index == -1 {
+				log.Printf("ERROR in tree, request : %s\n", request.Query)
+				continue
+			}
+			isBefore := ""
+			before := ""
+			if index > NumberOfSymbolsAroundSubstring {
+				isBefore = "..."
+				before = word.Text[(index - NumberOfSymbolsAroundSubstring):index]
+			} else {
+				before = word.Text[0:index]
+			}
+
+			isAfter := ""
+			after := ""
+			if len(word.Text)-(index+len(request.Query)) > NumberOfSymbolsAroundSubstring {
+				isAfter = "..."
+				from := index + len(request.Query)
+				after = word.Text[from : from+NumberOfSymbolsAroundSubstring]
+			} else {
+				after = word.Text[(index + len(request.Query)):]
+			}
+			wordSearchResponse.Preview = fmt.Sprintf("%s%s%s%s%s", isBefore, before, request.Query, after, isAfter)
+			response.Words = append(response.Words, wordSearchResponse)
+		}
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(response)
@@ -221,14 +259,6 @@ func convert(word text_search.Word) WordResponse {
 	wordResponse.Uuid = word.Uuid
 	wordResponse.Popularity = word.Popularity
 	return wordResponse
-}
-
-func convertAll(words []text_search.Word) []WordResponse {
-	res := make([]WordResponse, 0, len(words))
-	for _, word := range words {
-		res = append(res, convert(word))
-	}
-	return res
 }
 
 type ByPopularity []text_search.Word
