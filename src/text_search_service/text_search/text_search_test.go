@@ -1,6 +1,9 @@
 package text_search
 
 import (
+	"fmt"
+	"github.com/satori/go.uuid"
+	"sync"
 	"testing"
 )
 
@@ -43,6 +46,45 @@ func TestCorrectnessTextSearchMethodSearch(t *testing.T) {
 	}
 	words = textSearch.Search("text")
 	if len(words) != 2 || words[0].Text != "text1" || words[0].Popularity != 2 || words[1].Text != "text2" || words[1].Popularity != 1 {
+		t.Fatalf("error search words")
+	}
+
+	t.Logf("success")
+}
+
+func TestCorrectnessParallel(t *testing.T) {
+	type TestCase struct {
+		id   int
+		uuid uuid.UUID
+	}
+	textSearch := InitTextSearch(nil)
+	testCases := make([]TestCase, 10)
+	wg := &sync.WaitGroup{}
+	for i := 0; i < len(testCases); i++ {
+		testCases[i].id = i
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			testCases[i].uuid = textSearch.AddWord(fmt.Sprintf("text_%d", i))
+		}(i)
+	}
+	wg.Wait()
+	for _, testCase := range testCases {
+		wg.Add(1)
+		go func(testCase TestCase) {
+			defer wg.Done()
+			word, ok := textSearch.GetWordByUUID(testCase.uuid)
+			if !ok {
+				t.Fatalf("error get words")
+			}
+			if word.Uuid != testCase.uuid || word.Text != fmt.Sprintf("text_%d", testCase.id) {
+				t.Fatalf("error get words")
+			}
+		}(testCase)
+	}
+	wg.Wait()
+	words := textSearch.Search("text")
+	if len(words) != 10 {
 		t.Fatalf("error search words")
 	}
 
